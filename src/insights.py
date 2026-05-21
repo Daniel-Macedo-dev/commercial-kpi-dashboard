@@ -1,6 +1,7 @@
 import pandas as pd
 
 from src.kpi_calculator import compute_all
+from src.display_map import to_display
 
 
 # ── Insights ──────────────────────────────────────────────────────────────────
@@ -20,6 +21,10 @@ def generate(df: pd.DataFrame, lang: str = "en") -> list[str]:
     gap = kpis["gap_to_target"]
 
     if lang == "pt":
+        best_region = to_display(kpis["best_region"], "region", lang)
+        best_pl = to_display(kpis["best_product_line"], "product_line", lang)
+        best_channel = to_display(kpis["best_channel"], "channel", lang)
+
         if achievement >= 1.0:
             insights.append(
                 f"Atingimento de meta em {achievement:.1%} — a equipe está acima da meta. "
@@ -37,11 +42,11 @@ def generate(df: pd.DataFrame, lang: str = "en") -> list[str]:
             )
 
         insights.append(
-            f"A região com melhor desempenho é '{kpis['best_region']}', liderando em receita total. "
+            f"A região com melhor desempenho é '{best_region}', liderando em receita total. "
             "Considere replicar suas práticas comerciais nas regiões de menor desempenho."
         )
         insights.append(
-            f"'{kpis['best_product_line']}' é a linha de produto mais forte em receita. "
+            f"'{best_pl}' é a linha de produto mais forte em receita. "
             "Garanta estoque adequado e foco dos representantes nessa linha."
         )
 
@@ -63,7 +68,7 @@ def generate(df: pd.DataFrame, lang: str = "en") -> list[str]:
             )
 
         insights.append(
-            f"'{kpis['best_channel']}' é o canal de maior receita. "
+            f"'{best_channel}' é o canal de maior receita. "
             "Avalie se outros canais podem se beneficiar de estratégias comerciais similares."
         )
 
@@ -79,6 +84,10 @@ def generate(df: pd.DataFrame, lang: str = "en") -> list[str]:
                 "Certifique-se de que os descontos são usados de forma estratégica, não reativa."
             )
     else:
+        best_region = kpis["best_region"]
+        best_pl = kpis["best_product_line"]
+        best_channel = kpis["best_channel"]
+
         if achievement >= 1.0:
             insights.append(
                 f"Target achievement is {achievement:.1%} — the team is performing above target. "
@@ -96,11 +105,11 @@ def generate(df: pd.DataFrame, lang: str = "en") -> list[str]:
             )
 
         insights.append(
-            f"The top-performing region is '{kpis['best_region']}', leading in total revenue. "
+            f"The top-performing region is '{best_region}', leading in total revenue. "
             "Consider replicating its commercial practices in lower-performing regions."
         )
         insights.append(
-            f"'{kpis['best_product_line']}' is the strongest product line by revenue. "
+            f"'{best_pl}' is the strongest product line by revenue. "
             "Ensure adequate inventory and sales rep focus for this line."
         )
 
@@ -122,7 +131,7 @@ def generate(df: pd.DataFrame, lang: str = "en") -> list[str]:
             )
 
         insights.append(
-            f"'{kpis['best_channel']}' is the highest-revenue channel. "
+            f"'{best_channel}' is the highest-revenue channel. "
             "Evaluate whether other channels can benefit from similar commercial strategies."
         )
 
@@ -194,6 +203,10 @@ def generate_executive_summary(df: pd.DataFrame, lang: str = "en") -> list[dict]
     target = kpis["total_target"]
 
     if lang == "pt":
+        best_region_disp = to_display(kpis["best_region"], "region", lang)
+        best_pl_disp = to_display(kpis["best_product_line"], "product_line", lang)
+        best_channel_disp = to_display(kpis["best_channel"], "channel", lang)
+
         # 1. Revenue performance
         if achievement >= 1.0:
             rev_text = (
@@ -220,8 +233,8 @@ def generate_executive_summary(df: pd.DataFrame, lang: str = "en") -> list[dict]
         items.append({
             "label": "Principais Drivers Positivos",
             "text": (
-                f"A região '{kpis['best_region']}' e a linha de produto '{kpis['best_product_line']}' "
-                f"lideraram a geração de receita. O canal '{kpis['best_channel']}' foi o "
+                f"A região '{best_region_disp}' e a linha de produto '{best_pl_disp}' "
+                f"lideraram a geração de receita. O canal '{best_channel_disp}' foi o "
                 "canal de vendas com melhor desempenho no período selecionado."
             ),
             "status": "neutral",
@@ -233,10 +246,11 @@ def generate_executive_summary(df: pd.DataFrame, lang: str = "en") -> list[dict]
             worst = region_diag.loc[region_diag["Achievement %"].idxmin()]
             worst_pct = worst["Achievement %"]
             worst_gap = worst["Gap to Target"]
+            worst_region_disp = to_display(worst["Region"], "region", lang)
             items.append({
                 "label": "Dimensão com Baixo Desempenho",
                 "text": (
-                    f"A região '{worst['Region']}' tem o menor atingimento, em {worst_pct:.1%}, "
+                    f"A região '{worst_region_disp}' tem o menor atingimento, em {worst_pct:.1%}, "
                     f"com um gap de R\\$ {abs(worst_gap):,.0f} em relação à meta. "
                     "Priorizar essa área para intervenção comercial pode acelerar a recuperação."
                 ),
@@ -337,6 +351,7 @@ def generate_executive_summary(df: pd.DataFrame, lang: str = "en") -> list[dict]
                 ),
                 "status": "warning" if worst_pct >= 0.85 else "bad",
             })
+
 
         # 4. Conversion performance
         conv_rate = kpis["conversion_rate"]
