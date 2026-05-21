@@ -18,12 +18,12 @@ _T: dict[str, dict[str, str]] = {
         ),
         # ── Filters ───────────────────────────────────────────────────────────
         "filters": "Filters",
-        "start_date": "Start date",
-        "end_date": "End date",
+        "date_range": "Date range",
         "region": "Region",
         "channel": "Channel",
         "product_line": "Product Line",
         "product": "Product",
+        "select_all": "Select all",
         "choose_options": "Choose options",
         # ── KPI card labels ───────────────────────────────────────────────────
         "total_revenue": "Total Revenue",
@@ -104,12 +104,12 @@ _T: dict[str, dict[str, str]] = {
         ),
         # ── Filters ───────────────────────────────────────────────────────────
         "filters": "Filtros",
-        "start_date": "Data inicial",
-        "end_date": "Data final",
+        "date_range": "Período",
         "region": "Região",
         "channel": "Canal",
         "product_line": "Linha de Produto",
         "product": "Produto",
+        "select_all": "Selecionar todos",
         "choose_options": "Escolha as opções",
         # ── KPI card labels ───────────────────────────────────────────────────
         "total_revenue": "Receita Total",

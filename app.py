@@ -80,15 +80,40 @@ def _make_display_df(df: pd.DataFrame, lang: str) -> pd.DataFrame:
 
 def sidebar_lang() -> str:
     lang_labels = {"en": "English", "pt": "Português"}
-    options = SUPPORTED_LANGS
     selected = st.sidebar.selectbox(
         "Language / Idioma",
-        options=options,
+        options=SUPPORTED_LANGS,
         format_func=lambda x: lang_labels.get(x, x),
         key="lang_selector",
     )
     st.sidebar.divider()
     return selected
+
+
+def _checkbox_filter(
+    label: str,
+    display_options: list[str],
+    raw_options: list[str],
+    select_all_label: str,
+    key: str,
+) -> list[str]:
+    """Sidebar multi-filter using expander + checkboxes.
+
+    Returns raw (English) dataset values of the checked items.
+    An empty list means no restriction — identical semantics to an
+    unselected st.multiselect (apply_filters skips the dimension).
+    Replaces st.multiselect to eliminate the hardcoded English 'Select all' label.
+    """
+    selected_raw: list[str] = []
+    with st.sidebar.expander(label):
+        all_sel = st.checkbox(select_all_label, key=f"_all_{key}")
+        if not all_sel:
+            for disp, raw in zip(display_options, raw_options):
+                safe = raw.replace(" ", "_")
+                if st.checkbox(disp, key=f"_cb_{key}_{safe}"):
+                    selected_raw.append(raw)
+    # all_sel=True → empty list → apply_filters skips this dimension (shows all)
+    return selected_raw
 
 
 def sidebar_filters(df: pd.DataFrame, lang: str) -> dict:
@@ -97,44 +122,54 @@ def sidebar_filters(df: pd.DataFrame, lang: str) -> dict:
     date_min = df["Date"].min().date()
     date_max = df["Date"].max().date()
 
-    date_start = st.sidebar.date_input(
-        t(lang, "start_date"), value=date_min, min_value=date_min, max_value=date_max
-    )
-    date_end = st.sidebar.date_input(
-        t(lang, "end_date"), value=date_max, min_value=date_min, max_value=date_max
+    # Slider avoids native calendar popup with untranslatable English month/day labels.
+    # Day.js format strings: "DD/MM/YYYY" → 21/05/2026; "YYYY-MM-DD" → 2026-05-21.
+    date_fmt = "DD/MM/YYYY" if lang == "pt" else "YYYY-MM-DD"
+    date_start, date_end = st.sidebar.slider(
+        t(lang, "date_range"),
+        min_value=date_min,
+        max_value=date_max,
+        value=(date_min, date_max),
+        format=date_fmt,
     )
 
-    placeholder = t(lang, "choose_options")
+    sel_all = t(lang, "select_all")
 
     raw_regions = sorted(df["Region"].unique())
-    sel_regions_disp = st.sidebar.multiselect(
+    regions = _checkbox_filter(
         t(lang, "region"),
-        options=dm.translate_options(raw_regions, "region", lang),
-        placeholder=placeholder,
+        dm.translate_options(raw_regions, "region", lang),
+        raw_regions,
+        sel_all,
+        "region",
     )
-    regions = dm.raw_selections(sel_regions_disp, "region", lang)
 
     raw_channels = sorted(df["Channel"].unique())
-    sel_channels_disp = st.sidebar.multiselect(
+    channels = _checkbox_filter(
         t(lang, "channel"),
-        options=dm.translate_options(raw_channels, "channel", lang),
-        placeholder=placeholder,
+        dm.translate_options(raw_channels, "channel", lang),
+        raw_channels,
+        sel_all,
+        "channel",
     )
-    channels = dm.raw_selections(sel_channels_disp, "channel", lang)
 
     raw_pls = sorted(df["Product Line"].unique())
-    sel_pls_disp = st.sidebar.multiselect(
+    product_lines = _checkbox_filter(
         t(lang, "product_line"),
-        options=dm.translate_options(raw_pls, "product_line", lang),
-        placeholder=placeholder,
+        dm.translate_options(raw_pls, "product_line", lang),
+        raw_pls,
+        sel_all,
+        "product_line",
     )
-    product_lines = dm.raw_selections(sel_pls_disp, "product_line", lang)
 
     # Products: brand names kept in English across all modes
-    products = st.sidebar.multiselect(
+    raw_products = sorted(df["Product"].unique())
+    products = _checkbox_filter(
         t(lang, "product"),
-        sorted(df["Product"].unique()),
-        placeholder=placeholder,
+        raw_products,
+        raw_products,
+        sel_all,
+        "product",
     )
 
     return {

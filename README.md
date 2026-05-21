@@ -73,7 +73,7 @@ This dashboard replaces that workflow with an interactive, filter-driven view th
 | Excel upload | Bring your own `.xlsx` file; sample dataset used by default |
 | CSV exports | Filtered dataset, KPI summary, and diagnostics — all reflecting current filters |
 | Formatted data table | Discount, Achievement %, and Conversion Rate shown as % (not raw decimals) |
-| Bilingual UI | Full English / Português toggle — all labels, filter options (Region/Channel/Product Line), charts, diagnostics, and insights. Fictional dataset values remain in English internally; translated values are display-only and do not affect filtering, calculations, or CSV exports. |
+| Bilingual UI | Full English / Português toggle — all labels, filter controls (expander+checkboxes avoid hardcoded English "Select all"), date range slider (numeric format avoids English month/day calendar labels), charts, diagnostics, and insights. Fictional dataset values remain in English internally; translated values are display-only and do not affect filtering, calculations, or CSV exports. |
 
 ---
 
