@@ -121,7 +121,11 @@ KPI/
 ### 1. Create and activate a virtual environment
 
 ```bash
-# Windows
+# Windows — PowerShell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+# Windows — Command Prompt / Git Bash
 python -m venv .venv
 .venv\Scripts\activate
 
@@ -129,6 +133,8 @@ python -m venv .venv
 python -m venv .venv
 source .venv/bin/activate
 ```
+
+> **PowerShell note:** if you see an execution policy error, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once and try again.
 
 ### 2. Install dependencies
 
