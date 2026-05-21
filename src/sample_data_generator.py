@@ -35,12 +35,16 @@ _CHANNEL_MULTIPLIER = {
 }
 
 
+START_DATE = datetime(2025, 1, 1)
+END_DATE = datetime(2026, 5, 21)
+
+
 def generate_dataset(n_rows: int = 400, seed: int = 42) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
     random.seed(seed)
 
-    start_date = datetime(2023, 1, 1)
-    date_range_days = (datetime(2024, 12, 31) - start_date).days
+    start_date = START_DATE
+    date_range_days = (END_DATE - start_date).days
 
     rows = []
     for _ in range(n_rows):

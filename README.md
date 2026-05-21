@@ -171,7 +171,7 @@ python -m pytest -v
 
 When no file is uploaded, the dashboard loads `data/sample_commercial_data.xlsx` automatically. This dataset contains:
 
-- 2 years of fictional sales records (Jan 2023 – Dec 2024)
+- ~17 months of fictional sales records (Jan 2025 – May 2026)
 - 5 regions, 5 channels, 5 product lines, 20 products, 10 fictional sales reps
 - 400 rows with randomised but realistic revenue, targets, opportunities, conversions, and discounts
 
