@@ -17,8 +17,6 @@
 
 ![Dashboard Screenshot](assets/screenshot.png)
 
-_Screenshot not yet captured. To add it: run `streamlit run app.py`, open `http://localhost:8501`, take a full-page capture, and save it as `assets/screenshot.png`._
-
 ---
 
 ## Quick Review
@@ -29,7 +27,7 @@ For recruiters and interviewers — get the dashboard running in under two minut
 pip install -r requirements.txt           # 1. install dependencies
 python src/sample_data_generator.py       # 2. generate fictional dataset
 streamlit run app.py                      # 3. open http://localhost:8501
-python -m pytest -v                       # 4. run all 25 unit tests
+python -m pytest -v                       # 4. run all 68 unit tests
 ```
 
 Things to explore in the running dashboard:
@@ -106,12 +104,16 @@ KPI/
 │   ├── data_cleaning.py             # Cleans data and adds derived columns
 │   ├── kpi_calculator.py            # Pure KPI functions (no Streamlit dependency)
 │   ├── charts.py                    # Plotly chart builders
+│   ├── display_map.py               # Display name mapping for bilingual UI
+│   ├── i18n.py                      # Internationalisation strings (EN / PT)
 │   └── insights.py                  # Insights, executive summary, diagnostics
 ├── tests/
 │   ├── test_kpi_calculator.py       # Unit tests for KPI logic
-│   └── test_insights.py             # Unit tests for summary and diagnostics
+│   ├── test_insights.py             # Unit tests for summary and diagnostics
+│   ├── test_i18n.py                 # Unit tests for i18n translations
+│   └── test_display_map.py          # Unit tests for display mapping
 ├── assets/
-│   └── screenshot.png               # Place dashboard screenshot here
+│   └── screenshot.png               # Dashboard preview screenshot
 └── docs/
 ```
 
