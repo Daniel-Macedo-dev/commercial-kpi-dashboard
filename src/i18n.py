@@ -24,6 +24,7 @@ _T: dict[str, dict[str, str]] = {
         "channel": "Channel",
         "product_line": "Product Line",
         "product": "Product",
+        "choose_options": "Choose options",
         # ── KPI card labels ───────────────────────────────────────────────────
         "total_revenue": "Total Revenue",
         "total_target": "Total Target",
@@ -109,6 +110,7 @@ _T: dict[str, dict[str, str]] = {
         "channel": "Canal",
         "product_line": "Linha de Produto",
         "product": "Produto",
+        "choose_options": "Escolha as opções",
         # ── KPI card labels ───────────────────────────────────────────────────
         "total_revenue": "Receita Total",
         "total_target": "Meta Total",
