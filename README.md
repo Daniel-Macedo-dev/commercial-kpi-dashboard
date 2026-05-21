@@ -8,6 +8,21 @@ Displays fictional sales data with KPIs, charts, filters, and automatic business
 
 ---
 
+## MVP Status
+
+The dashboard is fully functional and portfolio-ready:
+
+- KPIs display with formatted currency (R$), percentages, and comma separators
+- Target Achievement card shows a colored delta vs. the 100% goal
+- Data table formats Discount, Conversion Rate, and Target Achievement as percentages (not raw decimals)
+- All 7 interactive Plotly charts include formatted axis ticks (R$ prefix, thousands separator) and hover tooltips
+- Sidebar filters (date range, region, channel, product line, product) update all sections reactively
+- Empty filter state shows a clean warning instead of broken charts
+- Upload error state shows a clear message listing required columns
+- Visual theme is neutral and professional — not based on any real company branding
+
+---
+
 ## Features
 
 - **KPI cards** — Total Revenue, Target Achievement, Gap to Target, Conversion Rate, Avg Ticket, Avg Discount
@@ -127,3 +142,7 @@ This project demonstrates skills relevant to **commercial analytics**, **sales e
 - Interactive dashboard development with Streamlit and Plotly
 - Modular, testable Python code structure
 - Rule-based insight generation from business data
+- Professional data formatting (currency, percentages, thousands separators)
+- Clean UI with neutral theme — suitable for a recruiter or interview demo
+
+> The visual theme is neutral and not based on any real company's branding or design guidelines.
