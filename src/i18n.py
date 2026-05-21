@@ -18,7 +18,11 @@ _T: dict[str, dict[str, str]] = {
         ),
         # ── Filters ───────────────────────────────────────────────────────────
         "filters": "Filters",
-        "date_range": "Date range",
+        "start_date": "Start date",
+        "end_date": "End date",
+        "day": "Day",
+        "month_label": "Month",
+        "year": "Year",
         "region": "Region",
         "channel": "Channel",
         "product_line": "Product Line",
@@ -83,6 +87,7 @@ _T: dict[str, dict[str, str]] = {
             "No data matches the selected filters. "
             "Try expanding the date range or clearing one or more filter selections."
         ),
+        "warn_date_range": "Start date must be before or equal to end date. Please adjust the date range.",
         "rows_shown": "{n:,} rows shown",
         "no_summary": "No data available for summary.",
     },
@@ -104,7 +109,11 @@ _T: dict[str, dict[str, str]] = {
         ),
         # ── Filters ───────────────────────────────────────────────────────────
         "filters": "Filtros",
-        "date_range": "Período",
+        "start_date": "Data inicial",
+        "end_date": "Data final",
+        "day": "Dia",
+        "month_label": "Mês",
+        "year": "Ano",
         "region": "Região",
         "channel": "Canal",
         "product_line": "Linha de Produto",
@@ -169,6 +178,7 @@ _T: dict[str, dict[str, str]] = {
             "Nenhum dado corresponde aos filtros selecionados. "
             "Tente ampliar o intervalo de datas ou limpar uma ou mais seleções."
         ),
+        "warn_date_range": "A data inicial deve ser anterior ou igual à data final. Por favor, ajuste o período.",
         "rows_shown": "{n:,} linhas exibidas",
         "no_summary": "Nenhum dado disponível para o resumo.",
     },

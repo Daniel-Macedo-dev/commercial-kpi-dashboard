@@ -6,7 +6,7 @@
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](https://python.org)
 [![Streamlit](https://img.shields.io/badge/streamlit-1.x-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io)
 [![Plotly](https://img.shields.io/badge/plotly-charts-3F4F75?logo=plotly&logoColor=white)](https://plotly.com)
-[![pytest](https://img.shields.io/badge/tests-68%20passing-brightgreen?logo=pytest&logoColor=white)](tests/)
+[![pytest](https://img.shields.io/badge/tests-82%20passing-brightgreen?logo=pytest&logoColor=white)](tests/)
 [![data](https://img.shields.io/badge/data-fictional%20only-orange)](data/)
 
 > **Disclaimer:** All data in this project is entirely fictional and randomly generated. This project is not affiliated with, endorsed by, or representative of any real company.
@@ -73,7 +73,7 @@ This dashboard replaces that workflow with an interactive, filter-driven view th
 | Excel upload | Bring your own `.xlsx` file; sample dataset used by default |
 | CSV exports | Filtered dataset, KPI summary, and diagnostics — all reflecting current filters |
 | Formatted data table | Discount, Achievement %, and Conversion Rate shown as % (not raw decimals) |
-| Bilingual UI | Full English / Português toggle — all labels, filter controls (expander+checkboxes avoid hardcoded English "Select all"), date range slider (numeric format avoids English month/day calendar labels), charts, diagnostics, and insights. Fictional dataset values remain in English internally; translated values are display-only and do not affect filtering, calculations, or CSV exports. |
+| Bilingual UI | Full English / Português toggle — all labels, filter controls (expander+checkboxes avoid hardcoded English "Select all"), localized date range selector (Month/Year/Day controls with Portuguese month names avoid English calendar labels), charts, diagnostics, and insights. Fictional dataset values remain in English internally; translated values are display-only and do not affect filtering, calculations, or CSV exports. |
 
 ---
 
@@ -202,12 +202,13 @@ If any required column is missing, the app shows a clear error listing exactly w
 
 ## Validation and Tests
 
-The project includes 68 unit tests across four files:
+The project includes 82 unit tests across five files:
 
 - **`tests/test_kpi_calculator.py`** — all 13 KPI functions, including zero-division edge cases
 - **`tests/test_insights.py`** — `build_dimension_diagnostics` (aggregation, achievement, gap, sorting) and `generate_executive_summary` (structure, status logic, single-region edge case)
 - **`tests/test_i18n.py`** — translation lookup, language fallback, kwargs interpolation, and PT/EN key parity
 - **`tests/test_display_map.py`** — value mapping (all regions, channels, product lines), reverse mapping, unknown-value fallback, filter round-trip, and column header translation
+- **`tests/test_date_utils.py`** — `months_for()` (12 entries, language fallback, EN/PT values) and `make_date()` (valid days, clamping for short months, leap year handling)
 
 Business logic lives entirely in `src/` modules with no Streamlit dependency — it can be imported, tested, and reused independently.
 

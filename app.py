@@ -1,3 +1,5 @@
+import calendar
+
 import pandas as pd
 import streamlit as st
 
@@ -6,6 +8,7 @@ from src.data_cleaning import clean
 from src import kpi_calculator as kpi
 from src import charts
 from src import display_map as dm
+from src.date_utils import months_for as _months_for, make_date as _make_date
 from src.i18n import t, SUPPORTED_LANGS
 from src.insights import (
     generate as generate_insights,
@@ -116,22 +119,65 @@ def _checkbox_filter(
     return selected_raw
 
 
+def _date_picker(
+    label: str,
+    default: "pd.Timestamp",
+    date_min: "pd.Timestamp",
+    date_max: "pd.Timestamp",
+    lang: str,
+    key: str,
+) -> "pd.Timestamp":
+    """Compact Month + Year + Day date selector without a native calendar popup.
+
+    Month names are localised via date_utils.months_for(). Day is a number_input
+    constrained to the valid range for the selected month/year so it never crashes.
+    """
+    months = _months_for(lang)
+    years = list(range(date_min.year, date_max.year + 1))
+
+    st.sidebar.markdown(f"**{label}**")
+    col_m, col_y = st.sidebar.columns([3, 2])
+
+    sel_month_name = col_m.selectbox(
+        t(lang, "month_label"),
+        months,
+        index=default.month - 1,
+        key=f"{key}_m",
+        label_visibility="collapsed",
+    )
+    # Guard index in case min/max share the same year
+    year_idx = years.index(default.year) if default.year in years else 0
+    sel_year = col_y.selectbox(
+        t(lang, "year"),
+        years,
+        index=year_idx,
+        key=f"{key}_y",
+        label_visibility="collapsed",
+    )
+
+    sel_month = months.index(sel_month_name) + 1
+    max_day = calendar.monthrange(sel_year, sel_month)[1]
+
+    sel_day = st.sidebar.number_input(
+        t(lang, "day"),
+        min_value=1,
+        max_value=max_day,
+        value=min(default.day, max_day),
+        step=1,
+        key=f"{key}_d",
+    )
+
+    return _make_date(sel_year, sel_month, int(sel_day))
+
+
 def sidebar_filters(df: pd.DataFrame, lang: str) -> dict:
     st.sidebar.header(t(lang, "filters"))
 
     date_min = df["Date"].min().date()
     date_max = df["Date"].max().date()
 
-    # Slider avoids native calendar popup with untranslatable English month/day labels.
-    # Day.js format strings: "DD/MM/YYYY" → 21/05/2026; "YYYY-MM-DD" → 2026-05-21.
-    date_fmt = "DD/MM/YYYY" if lang == "pt" else "YYYY-MM-DD"
-    date_start, date_end = st.sidebar.slider(
-        t(lang, "date_range"),
-        min_value=date_min,
-        max_value=date_max,
-        value=(date_min, date_max),
-        format=date_fmt,
-    )
+    date_start = _date_picker(t(lang, "start_date"), date_min, date_min, date_max, lang, "date_start")
+    date_end   = _date_picker(t(lang, "end_date"),   date_max, date_min, date_max, lang, "date_end")
 
     sel_all = t(lang, "select_all")
 
@@ -490,6 +536,11 @@ def main() -> None:
         st.stop()
 
     filters = sidebar_filters(df, lang)
+
+    if filters["date_start"] > filters["date_end"]:
+        st.warning(t(lang, "warn_date_range"))
+        st.stop()
+
     filtered = apply_filters(df, filters)
 
     if filtered.empty:
