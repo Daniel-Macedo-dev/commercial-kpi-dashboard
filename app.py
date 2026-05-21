@@ -5,7 +5,11 @@ from src.data_loader import load_default, load_from_upload
 from src.data_cleaning import clean
 from src import kpi_calculator as kpi
 from src import charts
-from src.insights import generate as generate_insights
+from src.insights import (
+    generate as generate_insights,
+    generate_executive_summary,
+    build_dimension_diagnostics,
+)
 
 st.set_page_config(
     page_title="Commercial KPI Dashboard",
@@ -94,7 +98,6 @@ def render_kpi_cards(df: pd.DataFrame) -> None:
     k = kpi.compute_all(df)
 
     col1, col2, col3, col4 = st.columns(4)
-
     col1.metric(
         "Total Revenue",
         _fmt_currency(k["total_revenue"]),
@@ -105,25 +108,20 @@ def render_kpi_cards(df: pd.DataFrame) -> None:
         _fmt_currency(k["total_target"]),
         help="Sum of all targets in the selected period and filters.",
     )
-
     achievement = k["target_achievement"]
-    achievement_delta = achievement - 1.0
     col3.metric(
         "Target Achievement",
         _fmt_percent(achievement),
-        delta=f"{achievement_delta:+.1%} vs goal",
+        delta=f"{achievement - 1.0:+.1%} vs goal",
         help="Total Revenue ÷ Total Target. Green = above 100%, red = below.",
     )
-
-    gap = k["gap_to_target"]
     col4.metric(
         "Gap to Target",
-        _fmt_currency(gap),
+        _fmt_currency(k["gap_to_target"]),
         help="Revenue minus Target. Positive = above target, negative = below.",
     )
 
     col5, col6, col7, col8 = st.columns(4)
-
     col5.metric(
         "Conversion Rate",
         _fmt_percent(k["conversion_rate"]),
@@ -146,6 +144,27 @@ def render_kpi_cards(df: pd.DataFrame) -> None:
     )
 
 
+# ── Executive summary ─────────────────────────────────────────────────────────
+
+_STATUS_FN = {
+    "good": st.success,
+    "warning": st.warning,
+    "bad": st.error,
+    "neutral": st.info,
+}
+
+
+def render_executive_summary(df: pd.DataFrame) -> None:
+    st.subheader("Executive Summary")
+    items = generate_executive_summary(df)
+    if not items:
+        st.info("No data available for summary.")
+        return
+    for item in items:
+        render_fn = _STATUS_FN.get(item["status"], st.info)
+        render_fn(f"**{item['label']}:** {item['text']}")
+
+
 # ── Charts ────────────────────────────────────────────────────────────────────
 
 def render_charts(df: pd.DataFrame) -> None:
@@ -165,6 +184,32 @@ def render_charts(df: pd.DataFrame) -> None:
 
     st.subheader("Sales Efficiency")
     st.plotly_chart(charts.conversion_rate_by_channel(df), use_container_width=True)
+
+
+# ── Performance diagnostics ───────────────────────────────────────────────────
+
+def render_diagnostics(df: pd.DataFrame) -> None:
+    st.subheader("Performance Diagnostics by Dimension")
+    st.caption(
+        "Revenue, Target, Achievement %, and Gap to Target broken down by Region, "
+        "Channel, and Product Line for the current filter selection."
+    )
+    diagnostics = build_dimension_diagnostics(df)
+    if not diagnostics:
+        return
+
+    tabs = st.tabs(list(diagnostics.keys()))
+    for tab, (dim, diag_df) in zip(tabs, diagnostics.items()):
+        with tab:
+            display = diag_df.copy()
+            display["Achievement %"] = display["Achievement %"] * 100
+            styler = display.style.format({
+                "Revenue": "R$ {:,.0f}",
+                "Target": "R$ {:,.0f}",
+                "Achievement %": "{:.1f}%",
+                "Gap to Target": lambda v: f"-R$ {abs(v):,.0f}" if v < 0 else f"R$ {v:,.0f}",
+            })
+            st.dataframe(styler, use_container_width=True, hide_index=True)
 
 
 # ── Insights ──────────────────────────────────────────────────────────────────
@@ -217,6 +262,70 @@ def render_data_table(df: pd.DataFrame) -> None:
     st.caption(f"{len(df):,} rows shown")
 
 
+# ── Exports ───────────────────────────────────────────────────────────────────
+
+def _kpi_summary_csv(k: dict) -> bytes:
+    rows = [
+        ("Total Revenue (R$)", round(k["total_revenue"], 2)),
+        ("Total Target (R$)", round(k["total_target"], 2)),
+        ("Target Achievement (%)", round(k["target_achievement"] * 100, 2)),
+        ("Gap to Target (R$)", round(k["gap_to_target"], 2)),
+        ("Total Opportunities", k["total_opportunities"]),
+        ("Total Conversions", k["total_conversions"]),
+        ("Conversion Rate (%)", round(k["conversion_rate"] * 100, 2)),
+        ("Total Units Sold", k["total_units_sold"]),
+        ("Average Ticket (R$)", round(k["average_ticket"], 2)),
+        ("Average Discount (%)", round(k["average_discount"] * 100, 2)),
+        ("Best Region", k["best_region"]),
+        ("Best Product Line", k["best_product_line"]),
+        ("Best Channel", k["best_channel"]),
+    ]
+    return pd.DataFrame(rows, columns=["Metric", "Value"]).to_csv(index=False).encode("utf-8-sig")
+
+
+def _diagnostics_csv(df: pd.DataFrame) -> bytes:
+    diagnostics = build_dimension_diagnostics(df)
+    frames = []
+    for dim, diag_df in diagnostics.items():
+        copy = diag_df.copy()
+        copy.insert(0, "Dimension", dim)
+        copy.rename(columns={dim: "Category"}, inplace=True)
+        copy["Achievement %"] = (copy["Achievement %"] * 100).round(2)
+        copy["Revenue"] = copy["Revenue"].round(2)
+        copy["Target"] = copy["Target"].round(2)
+        copy["Gap to Target"] = copy["Gap to Target"].round(2)
+        frames.append(copy)
+    return pd.concat(frames, ignore_index=True).to_csv(index=False).encode("utf-8-sig")
+
+
+def render_exports(filtered: pd.DataFrame) -> None:
+    st.subheader("Export")
+    k = kpi.compute_all(filtered)
+
+    col1, col2, col3 = st.columns(3)
+    col1.download_button(
+        label="Filtered Dataset (CSV)",
+        data=filtered.to_csv(index=False).encode("utf-8-sig"),
+        file_name="kpi_filtered_data.csv",
+        mime="text/csv",
+        help="All records matching the current filters.",
+    )
+    col2.download_button(
+        label="KPI Summary (CSV)",
+        data=_kpi_summary_csv(k),
+        file_name="kpi_summary.csv",
+        mime="text/csv",
+        help="KPI totals for the current filter selection.",
+    )
+    col3.download_button(
+        label="Diagnostics by Dimension (CSV)",
+        data=_diagnostics_csv(filtered),
+        file_name="kpi_diagnostics.csv",
+        mime="text/csv",
+        help="Performance breakdown by Region, Channel, and Product Line.",
+    )
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -263,9 +372,15 @@ def main() -> None:
 
     render_kpi_cards(filtered)
     st.divider()
+    render_executive_summary(filtered)
+    st.divider()
     render_charts(filtered)
     st.divider()
+    render_diagnostics(filtered)
+    st.divider()
     render_insights(filtered)
+    st.divider()
+    render_exports(filtered)
     st.divider()
     render_data_table(filtered)
 
