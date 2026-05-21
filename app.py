@@ -5,6 +5,7 @@ from src.data_loader import load_default, load_from_upload
 from src.data_cleaning import clean
 from src import kpi_calculator as kpi
 from src import charts
+from src import display_map as dm
 from src.i18n import t, SUPPORTED_LANGS
 from src.insights import (
     generate as generate_insights,
@@ -59,6 +60,22 @@ def load_data(uploaded_file) -> pd.DataFrame:
     return _load_default_cached()
 
 
+# ── Display copy ──────────────────────────────────────────────────────────────
+
+def _make_display_df(df: pd.DataFrame, lang: str) -> pd.DataFrame:
+    """Return a copy of df with categorical values translated for display.
+
+    Calculations always use the raw df; charts and tables use this copy.
+    """
+    if lang != "pt":
+        return df
+    copy = df.copy()
+    copy["Region"] = dm.translate_series(copy["Region"], "region", lang)
+    copy["Channel"] = dm.translate_series(copy["Channel"], "channel", lang)
+    copy["Product Line"] = dm.translate_series(copy["Product Line"], "product_line", lang)
+    return copy
+
+
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 
 def sidebar_lang() -> str:
@@ -87,10 +104,38 @@ def sidebar_filters(df: pd.DataFrame, lang: str) -> dict:
         t(lang, "end_date"), value=date_max, min_value=date_min, max_value=date_max
     )
 
-    regions = st.sidebar.multiselect(t(lang, "region"), sorted(df["Region"].unique()))
-    channels = st.sidebar.multiselect(t(lang, "channel"), sorted(df["Channel"].unique()))
-    product_lines = st.sidebar.multiselect(t(lang, "product_line"), sorted(df["Product Line"].unique()))
-    products = st.sidebar.multiselect(t(lang, "product"), sorted(df["Product"].unique()))
+    placeholder = t(lang, "choose_options")
+
+    raw_regions = sorted(df["Region"].unique())
+    sel_regions_disp = st.sidebar.multiselect(
+        t(lang, "region"),
+        options=dm.translate_options(raw_regions, "region", lang),
+        placeholder=placeholder,
+    )
+    regions = dm.raw_selections(sel_regions_disp, "region", lang)
+
+    raw_channels = sorted(df["Channel"].unique())
+    sel_channels_disp = st.sidebar.multiselect(
+        t(lang, "channel"),
+        options=dm.translate_options(raw_channels, "channel", lang),
+        placeholder=placeholder,
+    )
+    channels = dm.raw_selections(sel_channels_disp, "channel", lang)
+
+    raw_pls = sorted(df["Product Line"].unique())
+    sel_pls_disp = st.sidebar.multiselect(
+        t(lang, "product_line"),
+        options=dm.translate_options(raw_pls, "product_line", lang),
+        placeholder=placeholder,
+    )
+    product_lines = dm.raw_selections(sel_pls_disp, "product_line", lang)
+
+    # Products: brand names kept in English across all modes
+    products = st.sidebar.multiselect(
+        t(lang, "product"),
+        sorted(df["Product"].unique()),
+        placeholder=placeholder,
+    )
 
     return {
         "date_start": date_start,
@@ -182,6 +227,7 @@ _STATUS_FN = {
 
 def render_executive_summary(df: pd.DataFrame, lang: str) -> None:
     st.subheader(t(lang, "executive_summary"))
+    # Always pass raw df — insights.py translates dimension names internally
     items = generate_executive_summary(df, lang=lang)
     if not items:
         st.info(t(lang, "no_summary"))
@@ -193,30 +239,35 @@ def render_executive_summary(df: pd.DataFrame, lang: str) -> None:
 
 # ── Charts ────────────────────────────────────────────────────────────────────
 
-def render_charts(df: pd.DataFrame, lang: str) -> None:
+def render_charts(display_df: pd.DataFrame, lang: str) -> None:
+    """Render all Plotly charts. Receives a display df with translated values."""
     st.subheader(t(lang, "revenue_trends"))
     col1, col2 = st.columns(2)
-    col1.plotly_chart(charts.monthly_revenue_trend(df), use_container_width=True)
-    col2.plotly_chart(charts.monthly_target_vs_revenue(df), use_container_width=True)
+    col1.plotly_chart(charts.monthly_revenue_trend(display_df, lang), use_container_width=True)
+    col2.plotly_chart(charts.monthly_target_vs_revenue(display_df, lang), use_container_width=True)
 
     st.subheader(t(lang, "revenue_breakdown"))
     col3, col4 = st.columns(2)
-    col3.plotly_chart(charts.revenue_by_region(df), use_container_width=True)
-    col4.plotly_chart(charts.revenue_by_channel(df), use_container_width=True)
+    col3.plotly_chart(charts.revenue_by_region(display_df, lang), use_container_width=True)
+    col4.plotly_chart(charts.revenue_by_channel(display_df, lang), use_container_width=True)
 
     col5, col6 = st.columns(2)
-    col5.plotly_chart(charts.revenue_by_product_line(df), use_container_width=True)
-    col6.plotly_chart(charts.top_products(df), use_container_width=True)
+    col5.plotly_chart(charts.revenue_by_product_line(display_df, lang), use_container_width=True)
+    col6.plotly_chart(charts.top_products(display_df, lang=lang), use_container_width=True)
 
     st.subheader(t(lang, "sales_efficiency"))
-    st.plotly_chart(charts.conversion_rate_by_channel(df), use_container_width=True)
+    st.plotly_chart(charts.conversion_rate_by_channel(display_df, lang), use_container_width=True)
 
 
 # ── Performance diagnostics ───────────────────────────────────────────────────
 
+_DIM_CATEGORY = {"Region": "region", "Channel": "channel", "Product Line": "product_line"}
+
+
 def render_diagnostics(df: pd.DataFrame, lang: str) -> None:
     st.subheader(t(lang, "diagnostics"))
     st.caption(t(lang, "diagnostics_caption"))
+    # Aggregate on raw df to keep calculations correct
     diagnostics = build_dimension_diagnostics(df)
     if not diagnostics:
         return
@@ -227,16 +278,29 @@ def render_diagnostics(df: pd.DataFrame, lang: str) -> None:
         t(lang, "tab_product_line"),
     ]
     tabs = st.tabs(tab_labels)
+    headers = dm.col_headers(lang)
+
     for tab, (dim, diag_df) in zip(tabs, diagnostics.items()):
         with tab:
             display = diag_df.copy()
             display["Achievement %"] = display["Achievement %"] * 100
+
+            # Translate dimension values for display
+            cat = _DIM_CATEGORY.get(dim, "")
+            if cat:
+                display[dim] = dm.translate_series(display[dim], cat, lang)
+
             styler = display.style.format({
                 "Revenue": "R$ {:,.0f}",
                 "Target": "R$ {:,.0f}",
                 "Achievement %": "{:.1f}%",
                 "Gap to Target": lambda v: f"-R$ {abs(v):,.0f}" if v < 0 else f"R$ {v:,.0f}",
             })
+
+            if headers:
+                new_labels = [headers.get(c, c) for c in display.columns]
+                styler = styler.relabel_index(new_labels, axis="columns")
+
             st.dataframe(styler, use_container_width=True, hide_index=True)
 
 
@@ -285,7 +349,20 @@ def _get_styler(display_df: pd.DataFrame):
 def render_data_table(df: pd.DataFrame, lang: str) -> None:
     st.subheader(t(lang, "filtered_data"))
     display_df = _build_display_df(df)
+
+    # Translate categorical values in the display copy
+    for col, cat in [("Region", "region"), ("Channel", "channel"), ("Product Line", "product_line")]:
+        if col in display_df.columns:
+            display_df[col] = dm.translate_series(display_df[col], cat, lang)
+
     styler = _get_styler(display_df)
+
+    # Relabel column headers for PT mode (relabel_index changes display only)
+    headers = dm.col_headers(lang)
+    if headers:
+        new_labels = [headers.get(c, c) for c in display_df.columns]
+        styler = styler.relabel_index(new_labels, axis="columns")
+
     st.dataframe(styler, use_container_width=True, hide_index=True)
     st.caption(t(lang, "rows_shown", n=len(df)))
 
@@ -384,11 +461,15 @@ def main() -> None:
         st.warning(t(lang, "warn_no_data"))
         st.stop()
 
+    # Display copy: translated categorical values for charts and tables.
+    # All calculations (KPI cards, exports, insights) use the raw filtered df.
+    display_filtered = _make_display_df(filtered, lang)
+
     render_kpi_cards(filtered, lang)
     st.divider()
     render_executive_summary(filtered, lang)
     st.divider()
-    render_charts(filtered, lang)
+    render_charts(display_filtered, lang)
     st.divider()
     render_diagnostics(filtered, lang)
     st.divider()
