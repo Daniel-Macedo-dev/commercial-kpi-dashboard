@@ -3,6 +3,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 _PALETTE = px.colors.qualitative.Set2
+_CURRENCY_AXIS = dict(tickprefix="R$ ", tickformat=",.0f")
+_CURRENCY_HOVER_Y = "R$ %{y:,.0f}"
+_CURRENCY_HOVER_X = "R$ %{x:,.0f}"
 
 
 def monthly_revenue_trend(df: pd.DataFrame) -> go.Figure:
@@ -13,7 +16,16 @@ def monthly_revenue_trend(df: pd.DataFrame) -> go.Figure:
         markers=True,
         color_discrete_sequence=_PALETTE,
     )
-    fig.update_layout(xaxis_title="Month", yaxis_title="Revenue (R$)", xaxis_tickangle=-45)
+    fig.update_traces(
+        hovertemplate="<b>%{x}</b><br>Revenue: R$ %{y:,.0f}<extra></extra>"
+    )
+    fig.update_layout(
+        xaxis_title="Month",
+        yaxis_title="Revenue (R$)",
+        xaxis_tickangle=-45,
+        yaxis=_CURRENCY_AXIS,
+        hovermode="x unified",
+    )
     return fig
 
 
@@ -24,14 +36,25 @@ def monthly_target_vs_revenue(df: pd.DataFrame) -> go.Figure:
         .sort_values("Month")
     )
     fig = go.Figure()
-    fig.add_bar(x=monthly["Month"], y=monthly["Revenue"], name="Revenue", marker_color=_PALETTE[0])
-    fig.add_bar(x=monthly["Month"], y=monthly["Target"], name="Target", marker_color=_PALETTE[1])
+    fig.add_bar(
+        x=monthly["Month"], y=monthly["Revenue"],
+        name="Revenue",
+        marker_color=_PALETTE[0],
+        hovertemplate="<b>%{x}</b><br>Revenue: R$ %{y:,.0f}<extra></extra>",
+    )
+    fig.add_bar(
+        x=monthly["Month"], y=monthly["Target"],
+        name="Target",
+        marker_color=_PALETTE[1],
+        hovertemplate="<b>%{x}</b><br>Target: R$ %{y:,.0f}<extra></extra>",
+    )
     fig.update_layout(
         title="Monthly Revenue vs Target",
         barmode="group",
         xaxis_title="Month",
         yaxis_title="Amount (R$)",
         xaxis_tickangle=-45,
+        yaxis=_CURRENCY_AXIS,
     )
     return fig
 
@@ -48,7 +71,14 @@ def revenue_by_region(df: pd.DataFrame) -> go.Figure:
         color="Region",
         color_discrete_sequence=_PALETTE,
     )
-    fig.update_layout(showlegend=False, yaxis_title="Revenue (R$)")
+    fig.update_traces(
+        hovertemplate="<b>%{x}</b><br>Revenue: R$ %{y:,.0f}<extra></extra>"
+    )
+    fig.update_layout(
+        showlegend=False,
+        yaxis_title="Revenue (R$)",
+        yaxis=_CURRENCY_AXIS,
+    )
     return fig
 
 
@@ -58,6 +88,10 @@ def revenue_by_channel(df: pd.DataFrame) -> go.Figure:
         by_channel, names="Channel", values="Revenue",
         title="Revenue by Channel",
         color_discrete_sequence=_PALETTE,
+    )
+    fig.update_traces(
+        hovertemplate="<b>%{label}</b><br>Revenue: R$ %{value:,.0f}<br>Share: %{percent}<extra></extra>",
+        textinfo="label+percent",
     )
     return fig
 
@@ -75,7 +109,14 @@ def revenue_by_product_line(df: pd.DataFrame) -> go.Figure:
         color="Product Line",
         color_discrete_sequence=_PALETTE,
     )
-    fig.update_layout(showlegend=False, xaxis_title="Revenue (R$)")
+    fig.update_traces(
+        hovertemplate="<b>%{y}</b><br>Revenue: R$ %{x:,.0f}<extra></extra>"
+    )
+    fig.update_layout(
+        showlegend=False,
+        xaxis_title="Revenue (R$)",
+        xaxis=_CURRENCY_AXIS,
+    )
     return fig
 
 
@@ -92,7 +133,13 @@ def top_products(df: pd.DataFrame, n: int = 10) -> go.Figure:
         title=f"Top {n} Products by Revenue",
         color_discrete_sequence=_PALETTE,
     )
-    fig.update_layout(xaxis_title="Revenue (R$)")
+    fig.update_traces(
+        hovertemplate="<b>%{y}</b><br>Revenue: R$ %{x:,.0f}<extra></extra>"
+    )
+    fig.update_layout(
+        xaxis_title="Revenue (R$)",
+        xaxis=_CURRENCY_AXIS,
+    )
     return fig
 
 
@@ -112,5 +159,12 @@ def conversion_rate_by_channel(df: pd.DataFrame) -> go.Figure:
         color_discrete_sequence=_PALETTE,
         text_auto=".1%",
     )
-    fig.update_layout(showlegend=False, yaxis_tickformat=".0%", yaxis_title="Conversion Rate")
+    fig.update_traces(
+        hovertemplate="<b>%{x}</b><br>Conversion Rate: %{y:.1%}<extra></extra>"
+    )
+    fig.update_layout(
+        showlegend=False,
+        yaxis_tickformat=".0%",
+        yaxis_title="Conversion Rate",
+    )
     return fig
