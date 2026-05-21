@@ -6,7 +6,7 @@
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](https://python.org)
 [![Streamlit](https://img.shields.io/badge/streamlit-1.x-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io)
 [![Plotly](https://img.shields.io/badge/plotly-charts-3F4F75?logo=plotly&logoColor=white)](https://plotly.com)
-[![pytest](https://img.shields.io/badge/tests-25%20passing-brightgreen?logo=pytest&logoColor=white)](tests/)
+[![pytest](https://img.shields.io/badge/tests-34%20passing-brightgreen?logo=pytest&logoColor=white)](tests/)
 [![data](https://img.shields.io/badge/data-fictional%20only-orange)](data/)
 
 > **Disclaimer:** All data in this project is entirely fictional and randomly generated. This project is not affiliated with, endorsed by, or representative of any real company.
@@ -73,6 +73,7 @@ This dashboard replaces that workflow with an interactive, filter-driven view th
 | Excel upload | Bring your own `.xlsx` file; sample dataset used by default |
 | CSV exports | Filtered dataset, KPI summary, and diagnostics — all reflecting current filters |
 | Formatted data table | Discount, Achievement %, and Conversion Rate shown as % (not raw decimals) |
+| Bilingual UI | Full English / Português toggle — all labels, filters, insights, and executive summary |
 
 ---
 
@@ -201,10 +202,11 @@ If any required column is missing, the app shows a clear error listing exactly w
 
 ## Validation and Tests
 
-The project includes 25 unit tests across two files:
+The project includes 34 unit tests across three files:
 
 - **`tests/test_kpi_calculator.py`** — all 13 KPI functions, including zero-division edge cases
 - **`tests/test_insights.py`** — `build_dimension_diagnostics` (aggregation, achievement, gap, sorting) and `generate_executive_summary` (structure, status logic, single-region edge case)
+- **`tests/test_i18n.py`** — translation lookup, language fallback, kwargs interpolation, and PT/EN key parity
 
 Business logic lives entirely in `src/` modules with no Streamlit dependency — it can be imported, tested, and reused independently.
 

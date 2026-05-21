@@ -5,6 +5,7 @@ from src.data_loader import load_default, load_from_upload
 from src.data_cleaning import clean
 from src import kpi_calculator as kpi
 from src import charts
+from src.i18n import t, SUPPORTED_LANGS
 from src.insights import (
     generate as generate_insights,
     generate_executive_summary,
@@ -21,8 +22,20 @@ st.set_page_config(
 
 def _fmt_currency(value: float) -> str:
     if value < 0:
-        return f"-R$ {abs(value):,.0f}"
-    return f"R$ {value:,.0f}"
+        return f"-R\\$ {abs(value):,.0f}"
+    return f"R\\$ {value:,.0f}"
+
+
+def _fmt_compact(value: float) -> str:
+    """Compact currency for KPI cards: R$ 1.2M / R$ 450K / R$ 9,800."""
+    abs_val = abs(value)
+    if abs_val >= 1_000_000:
+        formatted = f"R\\$ {abs_val / 1_000_000:.1f}M"
+    elif abs_val >= 1_000:
+        formatted = f"R\\$ {abs_val / 1_000:.0f}K"
+    else:
+        formatted = f"R\\$ {abs_val:,.0f}"
+    return f"-{formatted}" if value < 0 else formatted
 
 
 def _fmt_percent(value: float) -> str:
@@ -48,23 +61,36 @@ def load_data(uploaded_file) -> pd.DataFrame:
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 
-def sidebar_filters(df: pd.DataFrame) -> dict:
-    st.sidebar.header("Filters")
+def sidebar_lang() -> str:
+    lang_labels = {"en": "English", "pt": "Português"}
+    options = SUPPORTED_LANGS
+    selected = st.sidebar.selectbox(
+        "Language / Idioma",
+        options=options,
+        format_func=lambda x: lang_labels.get(x, x),
+        key="lang_selector",
+    )
+    st.sidebar.divider()
+    return selected
+
+
+def sidebar_filters(df: pd.DataFrame, lang: str) -> dict:
+    st.sidebar.header(t(lang, "filters"))
 
     date_min = df["Date"].min().date()
     date_max = df["Date"].max().date()
 
     date_start = st.sidebar.date_input(
-        "Start date", value=date_min, min_value=date_min, max_value=date_max
+        t(lang, "start_date"), value=date_min, min_value=date_min, max_value=date_max
     )
     date_end = st.sidebar.date_input(
-        "End date", value=date_max, min_value=date_min, max_value=date_max
+        t(lang, "end_date"), value=date_max, min_value=date_min, max_value=date_max
     )
 
-    regions = st.sidebar.multiselect("Region", sorted(df["Region"].unique()))
-    channels = st.sidebar.multiselect("Channel", sorted(df["Channel"].unique()))
-    product_lines = st.sidebar.multiselect("Product Line", sorted(df["Product Line"].unique()))
-    products = st.sidebar.multiselect("Product", sorted(df["Product"].unique()))
+    regions = st.sidebar.multiselect(t(lang, "region"), sorted(df["Region"].unique()))
+    channels = st.sidebar.multiselect(t(lang, "channel"), sorted(df["Channel"].unique()))
+    product_lines = st.sidebar.multiselect(t(lang, "product_line"), sorted(df["Product Line"].unique()))
+    products = st.sidebar.multiselect(t(lang, "product"), sorted(df["Product"].unique()))
 
     return {
         "date_start": date_start,
@@ -94,53 +120,53 @@ def apply_filters(df: pd.DataFrame, filters: dict) -> pd.DataFrame:
 
 # ── KPI cards ─────────────────────────────────────────────────────────────────
 
-def render_kpi_cards(df: pd.DataFrame) -> None:
+def render_kpi_cards(df: pd.DataFrame, lang: str) -> None:
     k = kpi.compute_all(df)
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric(
-        "Total Revenue",
-        _fmt_currency(k["total_revenue"]),
-        help="Sum of all revenue in the selected period and filters.",
+        t(lang, "total_revenue"),
+        _fmt_compact(k["total_revenue"]),
+        help=t(lang, "help_revenue"),
     )
     col2.metric(
-        "Total Target",
-        _fmt_currency(k["total_target"]),
-        help="Sum of all targets in the selected period and filters.",
+        t(lang, "total_target"),
+        _fmt_compact(k["total_target"]),
+        help=t(lang, "help_target"),
     )
     achievement = k["target_achievement"]
     col3.metric(
-        "Target Achievement",
+        t(lang, "target_achievement"),
         _fmt_percent(achievement),
-        delta=f"{achievement - 1.0:+.1%} vs goal",
-        help="Total Revenue ÷ Total Target. Green = above 100%, red = below.",
+        delta=f"{achievement - 1.0:+.1%} {t(lang, 'vs_goal')}",
+        help=t(lang, "help_achievement"),
     )
     col4.metric(
-        "Gap to Target",
-        _fmt_currency(k["gap_to_target"]),
-        help="Revenue minus Target. Positive = above target, negative = below.",
+        t(lang, "gap_to_target"),
+        _fmt_compact(k["gap_to_target"]),
+        help=t(lang, "help_gap"),
     )
 
     col5, col6, col7, col8 = st.columns(4)
     col5.metric(
-        "Conversion Rate",
+        t(lang, "conversion_rate"),
         _fmt_percent(k["conversion_rate"]),
-        help="Total Conversions ÷ Total Opportunities.",
+        help=t(lang, "help_conversion"),
     )
     col6.metric(
-        "Avg Ticket",
-        _fmt_currency(k["average_ticket"]),
-        help="Total Revenue ÷ Total Units Sold.",
+        t(lang, "avg_ticket"),
+        _fmt_compact(k["average_ticket"]),
+        help=t(lang, "help_ticket"),
     )
     col7.metric(
-        "Avg Discount",
+        t(lang, "avg_discount"),
         _fmt_percent(k["average_discount"]),
-        help="Mean discount rate across all records in the current selection.",
+        help=t(lang, "help_discount"),
     )
     col8.metric(
-        "Units Sold",
+        t(lang, "units_sold"),
         _fmt_number(k["total_units_sold"]),
-        help="Total units sold across all products.",
+        help=t(lang, "help_units"),
     )
 
 
@@ -154,11 +180,11 @@ _STATUS_FN = {
 }
 
 
-def render_executive_summary(df: pd.DataFrame) -> None:
-    st.subheader("Executive Summary")
-    items = generate_executive_summary(df)
+def render_executive_summary(df: pd.DataFrame, lang: str) -> None:
+    st.subheader(t(lang, "executive_summary"))
+    items = generate_executive_summary(df, lang=lang)
     if not items:
-        st.info("No data available for summary.")
+        st.info(t(lang, "no_summary"))
         return
     for item in items:
         render_fn = _STATUS_FN.get(item["status"], st.info)
@@ -167,13 +193,13 @@ def render_executive_summary(df: pd.DataFrame) -> None:
 
 # ── Charts ────────────────────────────────────────────────────────────────────
 
-def render_charts(df: pd.DataFrame) -> None:
-    st.subheader("Revenue Trends")
+def render_charts(df: pd.DataFrame, lang: str) -> None:
+    st.subheader(t(lang, "revenue_trends"))
     col1, col2 = st.columns(2)
     col1.plotly_chart(charts.monthly_revenue_trend(df), use_container_width=True)
     col2.plotly_chart(charts.monthly_target_vs_revenue(df), use_container_width=True)
 
-    st.subheader("Revenue Breakdown")
+    st.subheader(t(lang, "revenue_breakdown"))
     col3, col4 = st.columns(2)
     col3.plotly_chart(charts.revenue_by_region(df), use_container_width=True)
     col4.plotly_chart(charts.revenue_by_channel(df), use_container_width=True)
@@ -182,23 +208,25 @@ def render_charts(df: pd.DataFrame) -> None:
     col5.plotly_chart(charts.revenue_by_product_line(df), use_container_width=True)
     col6.plotly_chart(charts.top_products(df), use_container_width=True)
 
-    st.subheader("Sales Efficiency")
+    st.subheader(t(lang, "sales_efficiency"))
     st.plotly_chart(charts.conversion_rate_by_channel(df), use_container_width=True)
 
 
 # ── Performance diagnostics ───────────────────────────────────────────────────
 
-def render_diagnostics(df: pd.DataFrame) -> None:
-    st.subheader("Performance Diagnostics by Dimension")
-    st.caption(
-        "Revenue, Target, Achievement %, and Gap to Target broken down by Region, "
-        "Channel, and Product Line for the current filter selection."
-    )
+def render_diagnostics(df: pd.DataFrame, lang: str) -> None:
+    st.subheader(t(lang, "diagnostics"))
+    st.caption(t(lang, "diagnostics_caption"))
     diagnostics = build_dimension_diagnostics(df)
     if not diagnostics:
         return
 
-    tabs = st.tabs(list(diagnostics.keys()))
+    tab_labels = [
+        t(lang, "tab_region"),
+        t(lang, "tab_channel"),
+        t(lang, "tab_product_line"),
+    ]
+    tabs = st.tabs(tab_labels)
     for tab, (dim, diag_df) in zip(tabs, diagnostics.items()):
         with tab:
             display = diag_df.copy()
@@ -214,9 +242,9 @@ def render_diagnostics(df: pd.DataFrame) -> None:
 
 # ── Insights ──────────────────────────────────────────────────────────────────
 
-def render_insights(df: pd.DataFrame) -> None:
-    st.subheader("Automatic Insights")
-    for insight in generate_insights(df):
+def render_insights(df: pd.DataFrame, lang: str) -> None:
+    st.subheader(t(lang, "insights"))
+    for insight in generate_insights(df, lang=lang):
         st.info(insight)
 
 
@@ -254,12 +282,12 @@ def _get_styler(display_df: pd.DataFrame):
     return display_df.style.format(fmt)
 
 
-def render_data_table(df: pd.DataFrame) -> None:
-    st.subheader("Filtered Data")
+def render_data_table(df: pd.DataFrame, lang: str) -> None:
+    st.subheader(t(lang, "filtered_data"))
     display_df = _build_display_df(df)
     styler = _get_styler(display_df)
     st.dataframe(styler, use_container_width=True, hide_index=True)
-    st.caption(f"{len(df):,} rows shown")
+    st.caption(t(lang, "rows_shown", n=len(df)))
 
 
 # ── Exports ───────────────────────────────────────────────────────────────────
@@ -298,91 +326,77 @@ def _diagnostics_csv(df: pd.DataFrame) -> bytes:
     return pd.concat(frames, ignore_index=True).to_csv(index=False).encode("utf-8-sig")
 
 
-def render_exports(filtered: pd.DataFrame) -> None:
-    st.subheader("Export")
+def render_exports(filtered: pd.DataFrame, lang: str) -> None:
+    st.subheader(t(lang, "export"))
     k = kpi.compute_all(filtered)
 
     col1, col2, col3 = st.columns(3)
     col1.download_button(
-        label="Filtered Dataset (CSV)",
+        label=t(lang, "btn_filtered"),
         data=filtered.to_csv(index=False).encode("utf-8-sig"),
         file_name="kpi_filtered_data.csv",
         mime="text/csv",
-        help="All records matching the current filters.",
+        help=t(lang, "help_btn_filtered"),
     )
     col2.download_button(
-        label="KPI Summary (CSV)",
+        label=t(lang, "btn_kpi"),
         data=_kpi_summary_csv(k),
         file_name="kpi_summary.csv",
         mime="text/csv",
-        help="KPI totals for the current filter selection.",
+        help=t(lang, "help_btn_kpi"),
     )
     col3.download_button(
-        label="Diagnostics by Dimension (CSV)",
+        label=t(lang, "btn_diagnostics"),
         data=_diagnostics_csv(filtered),
         file_name="kpi_diagnostics.csv",
         mime="text/csv",
-        help="Performance breakdown by Region, Channel, and Product Line.",
+        help=t(lang, "help_btn_diagnostics"),
     )
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    st.title("Commercial KPI Dashboard")
-    st.markdown(
-        "An interactive portfolio dashboard for commercial analytics. "
-        "**All data is entirely fictional** and for demonstration purposes only."
-    )
+    lang = sidebar_lang()
 
-    st.sidebar.title("Data Source")
-    uploaded = st.sidebar.file_uploader("Upload Excel file (.xlsx)", type=["xlsx"])
+    st.title(t(lang, "page_title"))
+    st.markdown(t(lang, "subtitle"))
+
+    st.sidebar.title(t(lang, "data_source"))
+    uploaded = st.sidebar.file_uploader(t(lang, "upload_label"), type=["xlsx"])
     if uploaded is None:
-        st.sidebar.info(
-            "Using the built-in **fictional sample dataset**.  \n"
-            "Upload your own `.xlsx` file above to analyze your own data."
-        )
+        st.sidebar.info(t(lang, "using_sample"))
 
     try:
         df = load_data(uploaded)
     except FileNotFoundError:
-        st.error(
-            "Sample dataset not found. "
-            "Run `python src/sample_data_generator.py` to generate it, then restart the app."
-        )
+        st.error(t(lang, "err_not_found"))
         st.stop()
     except ValueError as exc:
-        st.error(f"Could not load data: {exc}")
-        st.info(
-            "Make sure your Excel file contains these required columns: "
-            "**Date, Region, Channel, Product Line, Product, Sales Representative, "
-            "Revenue, Target, Opportunities, Conversions, Units Sold, Discount.**"
-        )
+        st.error(t(lang, "err_invalid", msg=str(exc)))
+        st.info(t(lang, "err_columns"))
         st.stop()
 
-    filters = sidebar_filters(df)
+    filters = sidebar_filters(df, lang)
     filtered = apply_filters(df, filters)
 
     if filtered.empty:
-        st.warning(
-            "No data matches the selected filters. "
-            "Try expanding the date range or clearing one or more filter selections."
-        )
+        st.warning(t(lang, "warn_no_data"))
         st.stop()
 
-    render_kpi_cards(filtered)
+    render_kpi_cards(filtered, lang)
     st.divider()
-    render_executive_summary(filtered)
+    render_executive_summary(filtered, lang)
     st.divider()
-    render_charts(filtered)
+    render_charts(filtered, lang)
     st.divider()
-    render_diagnostics(filtered)
+    render_diagnostics(filtered, lang)
     st.divider()
-    render_insights(filtered)
+    render_insights(filtered, lang)
     st.divider()
-    render_exports(filtered)
+    render_exports(filtered, lang)
     st.divider()
-    render_data_table(filtered)
+    render_data_table(filtered, lang)
 
 
 if __name__ == "__main__":
