@@ -13,8 +13,11 @@ st.set_page_config(
     layout="wide",
 )
 
+# ── Formatting helpers ────────────────────────────────────────────────────────
 
 def _fmt_currency(value: float) -> str:
+    if value < 0:
+        return f"-R$ {abs(value):,.0f}"
     return f"R$ {value:,.0f}"
 
 
@@ -26,6 +29,8 @@ def _fmt_number(value: float) -> str:
     return f"{value:,.0f}"
 
 
+# ── Data loading ──────────────────────────────────────────────────────────────
+
 @st.cache_data
 def _load_default_cached() -> pd.DataFrame:
     return clean(load_default())
@@ -36,6 +41,8 @@ def load_data(uploaded_file) -> pd.DataFrame:
         return clean(load_from_upload(uploaded_file))
     return _load_default_cached()
 
+
+# ── Sidebar ───────────────────────────────────────────────────────────────────
 
 def sidebar_filters(df: pd.DataFrame) -> dict:
     st.sidebar.header("Filters")
@@ -81,20 +88,65 @@ def apply_filters(df: pd.DataFrame, filters: dict) -> pd.DataFrame:
     return df[mask]
 
 
+# ── KPI cards ─────────────────────────────────────────────────────────────────
+
 def render_kpi_cards(df: pd.DataFrame) -> None:
     k = kpi.compute_all(df)
+
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Revenue", _fmt_currency(k["total_revenue"]))
-    col2.metric("Total Target", _fmt_currency(k["total_target"]))
-    col3.metric("Target Achievement", _fmt_percent(k["target_achievement"]))
-    col4.metric("Gap to Target", _fmt_currency(k["gap_to_target"]))
+
+    col1.metric(
+        "Total Revenue",
+        _fmt_currency(k["total_revenue"]),
+        help="Sum of all revenue in the selected period and filters.",
+    )
+    col2.metric(
+        "Total Target",
+        _fmt_currency(k["total_target"]),
+        help="Sum of all targets in the selected period and filters.",
+    )
+
+    achievement = k["target_achievement"]
+    achievement_delta = achievement - 1.0
+    col3.metric(
+        "Target Achievement",
+        _fmt_percent(achievement),
+        delta=f"{achievement_delta:+.1%} vs goal",
+        help="Total Revenue ÷ Total Target. Green = above 100%, red = below.",
+    )
+
+    gap = k["gap_to_target"]
+    col4.metric(
+        "Gap to Target",
+        _fmt_currency(gap),
+        help="Revenue minus Target. Positive = above target, negative = below.",
+    )
 
     col5, col6, col7, col8 = st.columns(4)
-    col5.metric("Conversion Rate", _fmt_percent(k["conversion_rate"]))
-    col6.metric("Avg Ticket", _fmt_currency(k["average_ticket"]))
-    col7.metric("Avg Discount", _fmt_percent(k["average_discount"]))
-    col8.metric("Units Sold", _fmt_number(k["total_units_sold"]))
 
+    col5.metric(
+        "Conversion Rate",
+        _fmt_percent(k["conversion_rate"]),
+        help="Total Conversions ÷ Total Opportunities.",
+    )
+    col6.metric(
+        "Avg Ticket",
+        _fmt_currency(k["average_ticket"]),
+        help="Total Revenue ÷ Total Units Sold.",
+    )
+    col7.metric(
+        "Avg Discount",
+        _fmt_percent(k["average_discount"]),
+        help="Mean discount rate across all records in the current selection.",
+    )
+    col8.metric(
+        "Units Sold",
+        _fmt_number(k["total_units_sold"]),
+        help="Total units sold across all products.",
+    )
+
+
+# ── Charts ────────────────────────────────────────────────────────────────────
 
 def render_charts(df: pd.DataFrame) -> None:
     st.subheader("Revenue Trends")
@@ -115,27 +167,57 @@ def render_charts(df: pd.DataFrame) -> None:
     st.plotly_chart(charts.conversion_rate_by_channel(df), use_container_width=True)
 
 
+# ── Insights ──────────────────────────────────────────────────────────────────
+
 def render_insights(df: pd.DataFrame) -> None:
     st.subheader("Automatic Insights")
     for insight in generate_insights(df):
         st.info(insight)
 
 
+# ── Data table ────────────────────────────────────────────────────────────────
+
+_DISPLAY_COLS = [
+    "Date", "Region", "Channel", "Product Line", "Product",
+    "Sales Representative", "Revenue", "Target", "Target Achievement",
+    "Gap to Target", "Opportunities", "Conversions", "Conversion Rate",
+    "Units Sold", "Average Ticket", "Discount",
+]
+_PCT_COLS = ["Target Achievement", "Conversion Rate", "Discount"]
+_CURRENCY_COLS = ["Revenue", "Target", "Gap to Target", "Average Ticket"]
+
+
+def _build_display_df(df: pd.DataFrame) -> pd.DataFrame:
+    cols = [c for c in _DISPLAY_COLS if c in df.columns]
+    display = df[cols].sort_values("Date", ascending=False).copy()
+    for col in _PCT_COLS:
+        if col in display.columns:
+            display[col] = display[col] * 100
+    return display.reset_index(drop=True)
+
+
+def _get_styler(display_df: pd.DataFrame):
+    fmt: dict = {}
+    for col in _CURRENCY_COLS:
+        if col in display_df.columns:
+            fmt[col] = lambda v: f"-R$ {abs(v):,.0f}" if v < 0 else f"R$ {v:,.0f}"
+    for col in _PCT_COLS:
+        if col in display_df.columns:
+            fmt[col] = "{:.1f}%"
+    if "Date" in display_df.columns:
+        fmt["Date"] = lambda x: x.strftime("%d/%m/%Y") if hasattr(x, "strftime") else str(x)
+    return display_df.style.format(fmt)
+
+
 def render_data_table(df: pd.DataFrame) -> None:
     st.subheader("Filtered Data")
-    display_cols = [
-        "Date", "Region", "Channel", "Product Line", "Product",
-        "Sales Representative", "Revenue", "Target", "Target Achievement",
-        "Gap to Target", "Opportunities", "Conversions", "Conversion Rate",
-        "Units Sold", "Average Ticket", "Discount",
-    ]
-    cols_present = [c for c in display_cols if c in df.columns]
-    st.dataframe(
-        df[cols_present].sort_values("Date", ascending=False),
-        use_container_width=True,
-    )
+    display_df = _build_display_df(df)
+    styler = _get_styler(display_df)
+    st.dataframe(styler, use_container_width=True, hide_index=True)
     st.caption(f"{len(df):,} rows shown")
 
+
+# ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
     st.title("Commercial KPI Dashboard")
@@ -147,19 +229,36 @@ def main() -> None:
     st.sidebar.title("Data Source")
     uploaded = st.sidebar.file_uploader("Upload Excel file (.xlsx)", type=["xlsx"])
     if uploaded is None:
-        st.sidebar.info("Using default sample dataset.")
+        st.sidebar.info(
+            "Using the built-in **fictional sample dataset**.  \n"
+            "Upload your own `.xlsx` file above to analyze your own data."
+        )
 
     try:
         df = load_data(uploaded)
-    except (FileNotFoundError, ValueError) as exc:
-        st.error(str(exc))
+    except FileNotFoundError:
+        st.error(
+            "Sample dataset not found. "
+            "Run `python src/sample_data_generator.py` to generate it, then restart the app."
+        )
+        st.stop()
+    except ValueError as exc:
+        st.error(f"Could not load data: {exc}")
+        st.info(
+            "Make sure your Excel file contains these required columns: "
+            "**Date, Region, Channel, Product Line, Product, Sales Representative, "
+            "Revenue, Target, Opportunities, Conversions, Units Sold, Discount.**"
+        )
         st.stop()
 
     filters = sidebar_filters(df)
     filtered = apply_filters(df, filters)
 
     if filtered.empty:
-        st.warning("No data matches the selected filters. Adjust the filters and try again.")
+        st.warning(
+            "No data matches the selected filters. "
+            "Try expanding the date range or clearing one or more filter selections."
+        )
         st.stop()
 
     render_kpi_cards(filtered)
