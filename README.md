@@ -13,9 +13,15 @@
 
 ---
 
-## Prévia
+## Capturas do Dashboard
+
+As imagens abaixo mostram o dashboard Streamlit em execução com dados fictícios de amostra.
 
 ![Dashboard Screenshot](assets/screenshot.png)
+*Visão geral — cards de KPI, resumo executivo e gráficos de tendência mensal*
+
+![Dashboard Screenshot 2](assets/screenshot2.png)
+*Diagnóstico de performance — breakdowns por região, canal e linha de produto*
 
 ---
 
@@ -136,7 +142,8 @@ KPI/
 │   ├── test_i18n.py                 # Testes para traduções i18n
 │   └── test_display_map.py          # Testes para mapeamento de exibição
 ├── assets/
-│   └── screenshot.png               # Screenshot de prévia do dashboard
+│   ├── screenshot.png               # Captura 1 — visão geral do dashboard
+│   └── screenshot2.png              # Captura 2 — diagnóstico de performance
 └── docs/
 ```
 
