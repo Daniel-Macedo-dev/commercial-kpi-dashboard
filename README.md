@@ -15,13 +15,22 @@
 
 ## Capturas do Dashboard
 
-As imagens abaixo mostram o dashboard Streamlit em execução com dados fictícios de amostra.
+As imagens abaixo mostram o dashboard em português rodando com dados fictícios de amostra.
 
-![Dashboard Screenshot](assets/screenshot.png)
-*Visão geral — cards de KPI, resumo executivo e gráficos de tendência mensal*
+![Visão geral do dashboard](assets/screenshot.png)
+*Visão geral com filtros, KPIs e resumo executivo*
 
-![Dashboard Screenshot 2](assets/screenshot2.png)
-*Diagnóstico de performance — breakdowns por região, canal e linha de produto*
+![Resumo executivo e KPIs](assets/screenshot2.png)
+*Análise de atingimento, receita e principais indicadores*
+
+![Gráficos de desempenho comercial](assets/screenshot3.png)
+*Gráficos de receita, meta, canais e linhas de produto*
+
+![Diagnósticos por dimensão](assets/screenshot4.png)
+*Diagnósticos por região, canal e linha de produto*
+
+![Tabela filtrada e exportações](assets/screenshot5.png)
+*Tabela filtrada e exportações em CSV*
 
 ---
 
@@ -142,8 +151,11 @@ KPI/
 │   ├── test_i18n.py                 # Testes para traduções i18n
 │   └── test_display_map.py          # Testes para mapeamento de exibição
 ├── assets/
-│   ├── screenshot.png               # Captura 1 — visão geral do dashboard
-│   └── screenshot2.png              # Captura 2 — diagnóstico de performance
+│   ├── screenshot.png               # Captura 1 — visão geral com filtros e KPIs
+│   ├── screenshot2.png              # Captura 2 — atingimento e indicadores
+│   ├── screenshot3.png              # Captura 3 — gráficos de receita e meta
+│   ├── screenshot4.png              # Captura 4 — diagnósticos por dimensão
+│   └── screenshot5.png              # Captura 5 — tabela filtrada e exportações
 └── docs/
 ```
 
