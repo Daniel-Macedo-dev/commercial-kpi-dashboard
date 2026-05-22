@@ -17,20 +17,35 @@
 
 As imagens abaixo mostram o dashboard em português rodando com dados fictícios de amostra.
 
+### Visão geral do dashboard
+
+KPIs principais, filtros laterais, fonte de dados e sumário executivo com leitura automática da performance comercial.
+
 ![Visão geral do dashboard](assets/screenshot.png)
-*Visão geral com filtros, KPIs e resumo executivo*
 
-![Resumo executivo e KPIs](assets/screenshot2.png)
-*Análise de atingimento, receita e principais indicadores*
+### Tendência de receita e detalhamento por região/canal
 
-![Gráficos de desempenho comercial](assets/screenshot3.png)
-*Gráficos de receita, meta, canais e linhas de produto*
+Visualização da evolução mensal da receita, comparação entre receita e meta, além da distribuição por região e canal comercial.
 
-![Diagnósticos por dimensão](assets/screenshot4.png)
-*Diagnósticos por região, canal e linha de produto*
+![Tendência de receita e detalhamento por região e canal](assets/screenshot2.png)
 
-![Tabela filtrada e exportações](assets/screenshot5.png)
-*Tabela filtrada e exportações em CSV*
+### Análise por linha de produto e eficiência comercial
+
+Gráficos de receita por linha de produto, ranking dos produtos com maior receita e taxa de conversão por canal.
+
+![Análise por linha de produto e eficiência comercial](assets/screenshot3.png)
+
+### Diagnóstico por dimensão e insights automáticos
+
+Diagnóstico comparando receita, meta, atingimento e gap por dimensão, acompanhado de insights automáticos para apoiar a análise.
+
+![Diagnóstico por dimensão e insights automáticos](assets/screenshot4.png)
+
+### Exportações e dados filtrados
+
+Área de exportação em CSV e tabela com os dados filtrados conforme as seleções feitas no dashboard.
+
+![Exportações e dados filtrados](assets/screenshot5.png)
 
 ---
 
