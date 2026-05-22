@@ -1,4 +1,4 @@
-# Dashboard Comercial de KPIs
+# Commercial-KPI-Dashboard
 
 > Dashboard interativo de análise comercial desenvolvido com Python e Streamlit.
 > Todos os dados são **fictícios e gerados aleatoriamente** — projeto de portfólio, sem dados reais de nenhuma empresa.
