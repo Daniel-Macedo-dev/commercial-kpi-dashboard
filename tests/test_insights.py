@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from src.insights import build_dimension_diagnostics, generate_executive_summary
+from src.insights import build_dimension_diagnostics, generate, generate_executive_summary
 
 
 @pytest.fixture
@@ -157,3 +157,140 @@ def test_executive_summary_single_region_skips_underperformer() -> None:
     result = generate_executive_summary(df)
     labels = [item["label"] for item in result]
     assert "Underperforming Dimension" not in labels
+
+
+# ── insights.generate() ───────────────────────────────────────────────────────
+
+def _make_df(
+    revenue: float,
+    target: float,
+    conversions: int,
+    opportunities: int,
+    discount: float,
+    region: str = "North",
+    channel: str = "Hospital",
+    product_line: str = "Medical Devices",
+    units: int = 50,
+) -> pd.DataFrame:
+    return pd.DataFrame({
+        "Revenue": [float(revenue)],
+        "Target": [float(target)],
+        "Opportunities": [int(opportunities)],
+        "Conversions": [int(conversions)],
+        "Units Sold": [int(units)],
+        "Region": [region],
+        "Channel": [channel],
+        "Product Line": [product_line],
+        "Discount": [float(discount)],
+    })
+
+
+def test_generate_empty_df_en() -> None:
+    assert generate(pd.DataFrame(), lang="en") == [
+        "No data available for the selected filters."
+    ]
+
+
+def test_generate_empty_df_pt() -> None:
+    assert generate(pd.DataFrame(), lang="pt") == [
+        "Nenhum dado disponível para os filtros selecionados."
+    ]
+
+
+def test_generate_returns_list_of_strings() -> None:
+    df = _make_df(revenue=100_000, target=100_000, conversions=40, opportunities=100, discount=0.12)
+    result = generate(df, lang="en")
+    assert isinstance(result, list)
+    assert all(isinstance(s, str) for s in result)
+    assert len(result) >= 5
+
+
+# ── achievement branches ──────────────────────────────────────────────────────
+
+def test_generate_achievement_above_target_en() -> None:
+    df = _make_df(revenue=110_000, target=100_000, conversions=40, opportunities=100, discount=0.05)
+    result = generate(df, lang="en")
+    assert any("above target" in s for s in result)
+
+
+def test_generate_achievement_close_to_target_en() -> None:
+    df = _make_df(revenue=95_000, target=100_000, conversions=40, opportunities=100, discount=0.05)
+    result = generate(df, lang="en")
+    assert any("close to target" in s for s in result)
+
+
+def test_generate_achievement_below_target_en() -> None:
+    df = _make_df(revenue=80_000, target=100_000, conversions=40, opportunities=100, discount=0.05)
+    result = generate(df, lang="en")
+    assert any("significantly below target" in s for s in result)
+
+
+def test_generate_achievement_above_target_pt() -> None:
+    df = _make_df(revenue=110_000, target=100_000, conversions=40, opportunities=100, discount=0.05)
+    result = generate(df, lang="pt")
+    assert any("acima da meta" in s for s in result)
+
+
+def test_generate_achievement_below_target_pt() -> None:
+    df = _make_df(revenue=80_000, target=100_000, conversions=40, opportunities=100, discount=0.05)
+    result = generate(df, lang="pt")
+    assert any("significativamente abaixo da meta" in s for s in result)
+
+
+# ── conversion branches ───────────────────────────────────────────────────────
+
+def test_generate_conversion_strong_en() -> None:
+    df = _make_df(revenue=100_000, target=100_000, conversions=55, opportunities=100, discount=0.05)
+    result = generate(df, lang="en")
+    assert any("strong performance" in s for s in result)
+
+
+def test_generate_conversion_moderate_en() -> None:
+    df = _make_df(revenue=100_000, target=100_000, conversions=40, opportunities=100, discount=0.05)
+    result = generate(df, lang="en")
+    assert any("moderate" in s for s in result)
+
+
+def test_generate_conversion_below_benchmark_en() -> None:
+    df = _make_df(revenue=100_000, target=100_000, conversions=20, opportunities=100, discount=0.05)
+    result = generate(df, lang="en")
+    assert any("below the 30% benchmark" in s for s in result)
+
+
+def test_generate_conversion_below_benchmark_pt() -> None:
+    df = _make_df(revenue=100_000, target=100_000, conversions=20, opportunities=100, discount=0.05)
+    result = generate(df, lang="pt")
+    assert any("abaixo do benchmark" in s for s in result)
+
+
+# ── discount branches ─────────────────────────────────────────────────────────
+
+def test_generate_discount_high_en() -> None:
+    df = _make_df(revenue=100_000, target=100_000, conversions=40, opportunities=100, discount=0.20)
+    result = generate(df, lang="en")
+    assert any("15% caution threshold" in s for s in result)
+
+
+def test_generate_discount_moderate_en() -> None:
+    df = _make_df(revenue=100_000, target=100_000, conversions=40, opportunities=100, discount=0.12)
+    result = generate(df, lang="en")
+    assert any("within acceptable range" in s for s in result)
+
+
+def test_generate_discount_low_no_insight_en() -> None:
+    df = _make_df(revenue=100_000, target=100_000, conversions=40, opportunities=100, discount=0.08)
+    result = generate(df, lang="en")
+    assert len(result) == 5
+    assert not any("discount" in s.lower() for s in result)
+
+
+def test_generate_discount_high_returns_six_insights() -> None:
+    df = _make_df(revenue=100_000, target=100_000, conversions=40, opportunities=100, discount=0.20)
+    result = generate(df, lang="en")
+    assert len(result) == 6
+
+
+def test_generate_discount_high_pt() -> None:
+    df = _make_df(revenue=100_000, target=100_000, conversions=40, opportunities=100, discount=0.20)
+    result = generate(df, lang="pt")
+    assert any("acima do limite de cautela" in s for s in result)
