@@ -306,6 +306,19 @@ def render_charts(display_df: pd.DataFrame, lang: str) -> None:
 _DIM_CATEGORY = {"Region": "region", "Channel": "channel", "Product Line": "product_line"}
 
 
+def _achievement_color(series: pd.Series) -> list[str]:
+    """Return per-cell background-color CSS for Achievement % (0–100 scale)."""
+    result = []
+    for v in series:
+        if v >= 100:
+            result.append("background-color: #d1fae5")  # green — at or above target
+        elif v >= 90:
+            result.append("background-color: #fef9c3")  # yellow — within 10 pp of target
+        else:
+            result.append("background-color: #fee2e2")  # red — below 90% of target
+    return result
+
+
 def render_diagnostics(df: pd.DataFrame, lang: str) -> None:
     st.subheader(t(lang, "diagnostics"))
     st.caption(t(lang, "diagnostics_caption"))
@@ -337,7 +350,7 @@ def render_diagnostics(df: pd.DataFrame, lang: str) -> None:
                 "Target": "R$ {:,.0f}",
                 "Achievement %": "{:.1f}%",
                 "Gap to Target": lambda v: f"-R$ {abs(v):,.0f}" if v < 0 else f"R$ {v:,.0f}",
-            })
+            }).apply(_achievement_color, subset=["Achievement %"])
 
             if headers:
                 new_labels = [headers.get(c, c) for c in display.columns]
