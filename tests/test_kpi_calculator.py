@@ -2,13 +2,20 @@ import pandas as pd
 import pytest
 
 from src.kpi_calculator import (
+    average_discount,
     average_ticket,
+    best_channel,
+    best_product_line,
     best_region,
+    compute_all,
     conversion_rate,
     gap_to_target,
     target_achievement,
+    total_conversions,
+    total_opportunities,
     total_revenue,
     total_target,
+    total_units_sold,
 )
 
 
@@ -68,3 +75,100 @@ def test_conversion_rate_zero_opportunities() -> None:
 def test_average_ticket_zero_units() -> None:
     df = pd.DataFrame({"Revenue": [1000.0], "Units Sold": [0]})
     assert average_ticket(df) == 0.0
+
+
+# ── total_opportunities ───────────────────────────────────────────────────────
+
+def test_total_opportunities(sample_df: pd.DataFrame) -> None:
+    # 20 + 30 + 25
+    assert total_opportunities(sample_df) == 75
+
+
+# ── total_conversions ─────────────────────────────────────────────────────────
+
+def test_total_conversions(sample_df: pd.DataFrame) -> None:
+    # 10 + 15 + 20
+    assert total_conversions(sample_df) == 45
+
+
+# ── total_units_sold ──────────────────────────────────────────────────────────
+
+def test_total_units_sold(sample_df: pd.DataFrame) -> None:
+    # 50 + 100 + 75
+    assert total_units_sold(sample_df) == 225
+
+
+# ── average_discount ──────────────────────────────────────────────────────────
+
+def test_average_discount() -> None:
+    df = pd.DataFrame({"Discount": [0.05, 0.15, 0.25]})
+    assert average_discount(df) == pytest.approx(0.15)
+
+
+def test_average_discount_empty_df() -> None:
+    assert average_discount(pd.DataFrame()) == 0.0
+
+
+# ── best_product_line ─────────────────────────────────────────────────────────
+
+def test_best_product_line() -> None:
+    df = pd.DataFrame({
+        "Product Line": ["Medical Devices", "Patient Care", "Medical Devices"],
+        "Revenue": [80_000.0, 200_000.0, 50_000.0],
+    })
+    # Patient Care: 200_000; Medical Devices: 130_000
+    assert best_product_line(df) == "Patient Care"
+
+
+# ── best_channel ──────────────────────────────────────────────────────────────
+
+def test_best_channel() -> None:
+    df = pd.DataFrame({
+        "Channel": ["Hospital", "Retail", "Hospital"],
+        "Revenue": [100_000.0, 150_000.0, 80_000.0],
+    })
+    # Hospital: 180_000; Retail: 150_000
+    assert best_channel(df) == "Hospital"
+
+
+# ── compute_all ───────────────────────────────────────────────────────────────
+
+_COMPUTE_ALL_DF = pd.DataFrame({
+    "Revenue": [100_000.0],
+    "Target": [90_000.0],
+    "Opportunities": [20],
+    "Conversions": [10],
+    "Units Sold": [50],
+    "Discount": [0.10],
+    "Region": ["North"],
+    "Product Line": ["Medical Devices"],
+    "Channel": ["Hospital"],
+})
+
+_EXPECTED_KEYS = {
+    "total_revenue", "total_target", "target_achievement", "gap_to_target",
+    "total_opportunities", "total_conversions", "conversion_rate",
+    "total_units_sold", "average_ticket", "average_discount",
+    "best_region", "best_product_line", "best_channel",
+}
+
+
+def test_compute_all_returns_expected_keys() -> None:
+    assert set(compute_all(_COMPUTE_ALL_DF).keys()) == _EXPECTED_KEYS
+
+
+def test_compute_all_values_correct() -> None:
+    result = compute_all(_COMPUTE_ALL_DF)
+    assert result["total_revenue"] == pytest.approx(100_000.0)
+    assert result["total_target"] == pytest.approx(90_000.0)
+    assert result["target_achievement"] == pytest.approx(100_000 / 90_000)
+    assert result["gap_to_target"] == pytest.approx(10_000.0)
+    assert result["total_opportunities"] == 20
+    assert result["total_conversions"] == 10
+    assert result["conversion_rate"] == pytest.approx(0.5)
+    assert result["total_units_sold"] == 50
+    assert result["average_ticket"] == pytest.approx(2_000.0)
+    assert result["average_discount"] == pytest.approx(0.10)
+    assert result["best_region"] == "North"
+    assert result["best_product_line"] == "Medical Devices"
+    assert result["best_channel"] == "Hospital"
