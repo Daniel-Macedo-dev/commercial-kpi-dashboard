@@ -142,6 +142,66 @@ def test_executive_summary_below_target_status() -> None:
     assert rev_item["status"] == "bad"
 
 
+def test_executive_summary_flags_revenue_leader_below_target() -> None:
+    # Southeast: highest revenue but below target → must flag
+    df = pd.DataFrame({
+        "Revenue": [500_000.0, 300_000.0],
+        "Target": [700_000.0, 200_000.0],
+        "Region": ["Southeast", "South"],
+        "Channel": ["Hospital", "Retail"],
+        "Product Line": ["Medical Devices", "Patient Care"],
+        "Opportunities": [20, 15],
+        "Conversions": [10, 8],
+        "Units Sold": [50, 40],
+        "Discount": [0.10, 0.12],
+    })
+    result = generate_executive_summary(df, lang="en")
+    labels = [item["label"] for item in result]
+    assert "Revenue Leader vs Target" in labels
+    item = next(i for i in result if i["label"] == "Revenue Leader vs Target")
+    assert "Southeast" in item["text"]
+    assert "below target" in item["text"]
+    assert item["status"] in ("warning", "bad")
+
+
+def test_executive_summary_no_flag_when_revenue_leader_above_target() -> None:
+    # Southeast: highest revenue AND above target → no flag
+    df = pd.DataFrame({
+        "Revenue": [500_000.0, 300_000.0],
+        "Target": [400_000.0, 350_000.0],
+        "Region": ["Southeast", "South"],
+        "Channel": ["Hospital", "Retail"],
+        "Product Line": ["Medical Devices", "Patient Care"],
+        "Opportunities": [20, 15],
+        "Conversions": [10, 8],
+        "Units Sold": [50, 40],
+        "Discount": [0.10, 0.12],
+    })
+    result = generate_executive_summary(df, lang="en")
+    labels = [item["label"] for item in result]
+    assert "Revenue Leader vs Target" not in labels
+
+
+def test_executive_summary_flags_revenue_leader_below_target_pt() -> None:
+    df = pd.DataFrame({
+        "Revenue": [500_000.0, 300_000.0],
+        "Target": [700_000.0, 200_000.0],
+        "Region": ["Southeast", "South"],
+        "Channel": ["Hospital", "Retail"],
+        "Product Line": ["Medical Devices", "Patient Care"],
+        "Opportunities": [20, 15],
+        "Conversions": [10, 8],
+        "Units Sold": [50, 40],
+        "Discount": [0.10, 0.12],
+    })
+    result = generate_executive_summary(df, lang="pt")
+    labels = [item["label"] for item in result]
+    assert "Líder de Receita vs Meta" in labels
+    item = next(i for i in result if i["label"] == "Líder de Receita vs Meta")
+    assert "abaixo da meta" in item["text"]
+    assert item["status"] in ("warning", "bad")
+
+
 def test_executive_summary_single_region_skips_underperformer() -> None:
     df = pd.DataFrame({
         "Revenue": [100_000.0],

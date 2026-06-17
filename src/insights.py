@@ -42,8 +42,9 @@ def generate(df: pd.DataFrame, lang: str = "en") -> list[str]:
             )
 
         insights.append(
-            f"A região com melhor desempenho é '{best_region}', liderando em receita total. "
-            "Considere replicar suas práticas comerciais nas regiões de menor desempenho."
+            f"A região '{best_region}' lidera em receita absoluta. "
+            "Considere suas práticas comerciais como referência, mas verifique o atingimento "
+            "de meta antes de classificá-la como a de melhor desempenho."
         )
         insights.append(
             f"'{best_pl}' é a linha de produto mais forte em receita. "
@@ -105,8 +106,9 @@ def generate(df: pd.DataFrame, lang: str = "en") -> list[str]:
             )
 
         insights.append(
-            f"The top-performing region is '{best_region}', leading in total revenue. "
-            "Consider replicating its commercial practices in lower-performing regions."
+            f"The '{best_region}' region leads in absolute revenue. "
+            "Consider its commercial practices as a reference, but cross-check target "
+            "achievement before labelling it the top performer."
         )
         insights.append(
             f"'{best_pl}' is the strongest product line by revenue. "
@@ -234,14 +236,30 @@ def generate_executive_summary(df: pd.DataFrame, lang: str = "en") -> list[dict]
             "label": "Principais Drivers Positivos",
             "text": (
                 f"A região '{best_region_disp}' e a linha de produto '{best_pl_disp}' "
-                f"lideraram a geração de receita. O canal '{best_channel_disp}' foi o "
+                f"lideraram em receita absoluta. O canal '{best_channel_disp}' foi o "
                 "canal de vendas com melhor desempenho no período selecionado."
             ),
             "status": "neutral",
         })
 
-        # 3. Underperforming dimension
+        # 2.5 Revenue leader vs target
         region_diag = _aggregate_dimension(df, "Region")
+        best_rev_row = region_diag.loc[region_diag["Region"] == kpis["best_region"]]
+        if not best_rev_row.empty:
+            best_rev_ach = float(best_rev_row["Achievement %"].iloc[0])
+            if best_rev_ach < 1.0:
+                items.append({
+                    "label": "Líder de Receita vs Meta",
+                    "text": (
+                        f"'{best_region_disp}' lidera em receita absoluta, mas está abaixo da meta "
+                        f"com atingimento de {best_rev_ach:.1%}. "
+                        "Receita elevada não garante bom desempenho em relação à meta — "
+                        "analise o gap regional antes de concluir sobre performance."
+                    ),
+                    "status": "warning" if best_rev_ach >= 0.85 else "bad",
+                })
+
+        # 3. Underperforming dimension
         if len(region_diag) > 1:
             worst = region_diag.loc[region_diag["Achievement %"].idxmin()]
             worst_pct = worst["Achievement %"]
@@ -330,14 +348,30 @@ def generate_executive_summary(df: pd.DataFrame, lang: str = "en") -> list[dict]
             "label": "Main Positive Drivers",
             "text": (
                 f"The '{kpis['best_region']}' region and '{kpis['best_product_line']}' product line "
-                f"led revenue generation. The '{kpis['best_channel']}' channel was the "
+                f"led in absolute revenue. The '{kpis['best_channel']}' channel was the "
                 "strongest-performing sales channel in the selected period."
             ),
             "status": "neutral",
         })
 
-        # 3. Underperforming dimension (only meaningful with more than one region)
+        # 2.5 Revenue leader vs target
         region_diag = _aggregate_dimension(df, "Region")
+        best_rev_row = region_diag.loc[region_diag["Region"] == kpis["best_region"]]
+        if not best_rev_row.empty:
+            best_rev_ach = float(best_rev_row["Achievement %"].iloc[0])
+            if best_rev_ach < 1.0:
+                items.append({
+                    "label": "Revenue Leader vs Target",
+                    "text": (
+                        f"'{kpis['best_region']}' leads in absolute revenue but is below target "
+                        f"with an achievement of {best_rev_ach:.1%}. "
+                        "High revenue alone does not indicate strong performance against target — "
+                        "review the regional gap before drawing conclusions."
+                    ),
+                    "status": "warning" if best_rev_ach >= 0.85 else "bad",
+                })
+
+        # 3. Underperforming dimension (only meaningful with more than one region)
         if len(region_diag) > 1:
             worst = region_diag.loc[region_diag["Achievement %"].idxmin()]
             worst_pct = worst["Achievement %"]

@@ -15,6 +15,8 @@ _LABELS: dict[str, dict[str, str]] = {
         "amount_axis": "Amount (R$)",
         "revenue_axis": "Revenue (R$)",
         "conversion_rate": "Conversion Rate",
+        "achievement_pct": "Achievement %",
+        "reference_100": "100% target",
         "title_monthly_trend": "Monthly Revenue Trend",
         "title_monthly_vs": "Monthly Revenue vs Target",
         "title_by_region": "Revenue by Region",
@@ -22,6 +24,7 @@ _LABELS: dict[str, dict[str, str]] = {
         "title_by_pl": "Revenue by Product Line",
         "title_top_n": "Top {n} Products by Revenue",
         "title_conversion": "Conversion Rate by Channel",
+        "title_revenue_vs_achievement": "Revenue vs. Target Achievement by Region",
     },
     "pt": {
         "revenue": "Receita",
@@ -30,6 +33,8 @@ _LABELS: dict[str, dict[str, str]] = {
         "amount_axis": "Valor (R$)",
         "revenue_axis": "Receita (R$)",
         "conversion_rate": "Taxa de Conversão",
+        "achievement_pct": "Atingimento %",
+        "reference_100": "Meta 100%",
         "title_monthly_trend": "Tendência Mensal de Receita",
         "title_monthly_vs": "Receita vs Meta Mensal",
         "title_by_region": "Receita por Região",
@@ -37,6 +42,7 @@ _LABELS: dict[str, dict[str, str]] = {
         "title_by_pl": "Receita por Linha de Produto",
         "title_top_n": "Top {n} Produtos por Receita",
         "title_conversion": "Taxa de Conversão por Canal",
+        "title_revenue_vs_achievement": "Receita x Atingimento da Meta por Região",
     },
 }
 
@@ -187,6 +193,53 @@ def top_products(df: pd.DataFrame, n: int = 10, lang: str = "en") -> go.Figure:
     fig.update_layout(
         xaxis_title=_lbl(lang, "revenue_axis"),
         xaxis=_CURRENCY_AXIS,
+    )
+    return fig
+
+
+def revenue_vs_achievement_by_region(df: pd.DataFrame, lang: str = "en") -> go.Figure:
+    by_region = (
+        df.groupby("Region")[["Revenue", "Target"]]
+        .sum()
+        .reset_index()
+    )
+    safe_target = by_region["Target"].replace(0, pd.NA)
+    by_region["Achievement %"] = (by_region["Revenue"] / safe_target).fillna(0)
+
+    rev = _lbl(lang, "revenue")
+    ach = _lbl(lang, "achievement_pct")
+
+    fig = px.scatter(
+        by_region,
+        x="Revenue",
+        y="Achievement %",
+        text="Region",
+        title=_lbl(lang, "title_revenue_vs_achievement"),
+        color="Region",
+        color_discrete_sequence=_PALETTE,
+    )
+    fig.update_traces(
+        textposition="top center",
+        marker_size=14,
+        hovertemplate=(
+            "<b>%{text}</b><br>"
+            f"{rev}: R$ %{{x:,.0f}}<br>"
+            f"{ach}: %{{y:.1%}}<extra></extra>"
+        ),
+    )
+    fig.add_hline(
+        y=1.0,
+        line_dash="dash",
+        line_color="gray",
+        annotation_text=_lbl(lang, "reference_100"),
+        annotation_position="top right",
+    )
+    fig.update_layout(
+        showlegend=False,
+        xaxis_title=_lbl(lang, "revenue_axis"),
+        xaxis=_CURRENCY_AXIS,
+        yaxis_title=ach,
+        yaxis_tickformat=".0%",
     )
     return fig
 

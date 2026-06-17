@@ -293,6 +293,8 @@ def render_charts(display_df: pd.DataFrame, lang: str) -> None:
     col3.plotly_chart(charts.revenue_by_region(display_df, lang), use_container_width=True)
     col4.plotly_chart(charts.revenue_by_channel(display_df, lang), use_container_width=True)
 
+    st.plotly_chart(charts.revenue_vs_achievement_by_region(display_df, lang), use_container_width=True)
+
     col5, col6 = st.columns(2)
     col5.plotly_chart(charts.revenue_by_product_line(display_df, lang), use_container_width=True)
     col6.plotly_chart(charts.top_products(display_df, lang=lang), use_container_width=True)
